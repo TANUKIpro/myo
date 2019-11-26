@@ -380,7 +380,8 @@ class MyoRaw(object):
     def vibrate(self, length):
         if length in xrange(1, 4):
             ## first byte tells it to vibrate; purpose of second byte is unknown
-            self.write_attr(0x19, pack('3B', 3, 1, length))
+            #self.write_attr(0x19, pack('3B', 3, 1, length))
+            return
 
 
     def add_emg_handler(self, h):
@@ -414,9 +415,10 @@ class MyoRaw(object):
     
     def plot_emg(self, t_start):
         emg = self.emg
-        print(emg)
         now = time.time()
+        
         t = now - t_start
+        print(emg, t)
         return emg, t
 
 if __name__ == '__main__':
@@ -435,6 +437,8 @@ if __name__ == '__main__':
         
         t = data_np[:,8]
         
+        #Black Myo
+        """
         plt.plot(t, x5, "r-", label="EMG A", color='greenyellow')
         plt.plot(t, x6, "r-", label="EMG B", color='lightsalmon')
         plt.plot(t, x7, "r-", label="EMG C", color='lightpink')
@@ -443,6 +447,17 @@ if __name__ == '__main__':
         plt.plot(t, x2, "r-", label="EMG F", color='green')
         plt.plot(t, x3, "r-", label="EMG G", color='blue')
         plt.plot(t, x4, "r-", label="EMG H", color='sienna')
+        """
+        
+        #White Myo
+        plt.plot(t, x3, "r-", label="EMG A", color='blue')
+        plt.plot(t, x4, "r-", label="EMG B", color='sienna')
+        plt.plot(t, x5, "r-", label="EMG C", color='greenyellow')
+        plt.plot(t, x6, "r-", label="EMG D", color='lightsalmon')
+        plt.plot(t, x7, "r-", label="EMG E", color='lightpink')
+        plt.plot(t, x0, "r-", label="EMG F", color='black')
+        plt.plot(t, x1, "r-", label="EMG G", color='red')
+        plt.plot(t, x2, "r-", label="EMG H", color='green')
         
         plt.xlabel("Time[sec]", fontsize=16)
         plt.ylabel("EMG", fontsize=16)
