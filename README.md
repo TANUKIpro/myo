@@ -86,3 +86,23 @@ def data_plot(data):
 
 2. 本当はリアルタイム描画したい  
     __python__ の __matpotlib__ でリアルタイム描画できるらしいからやってみたけど、なんか上手く行かない。できる人いたら教えて。
+
+3. メインの部分  
+```python
+try:
+    t_start = time.time()
+    while True:
+        m.run(1)
+        emg, t = m.plot_emg(t_start)
+        try:
+            EMGandT.append([emg[0],emg[1],emg[2],emg[3],emg[4],emg[5],emg[6],emg[7], t])
+        except:
+            pass
+except KeyboardInterrupt:
+    pass
+finally:
+    m.disconnect()
+    print()
+    data_plot(EMGandT)
+```
+[元のコード](https://github.com/dzhu/myo-raw)は、PyGameを使った謎GUIがあったが消した。
