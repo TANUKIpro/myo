@@ -301,7 +301,6 @@ class MyoRaw(object):
             elif attr == 0x23:
             	try:
                     typ, val, xdir = unpack('3B', pay)
-
                     if typ == 1: # on arm
                         self.on_arm(Arm(val), XDirection(xdir))
                     elif typ == 2: # removed from arm
@@ -487,6 +486,7 @@ if __name__ == '__main__':
 
         while True:
             m.run(1)
+            m.write_attr(0x19, b'\x03\x01\x00')
             emg, t = m.plot_emg(t_start)
             try:
                 EMGandT.append([emg[0],emg[1],emg[2],emg[3],emg[4],emg[5],emg[6],emg[7], t])
