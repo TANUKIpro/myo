@@ -486,6 +486,7 @@ if __name__ == '__main__':
 
         while True:
             m.run(1)
+            #stop vibration ever
             m.write_attr(0x19, b'\x03\x01\x00')
             emg, t = m.plot_emg(t_start)
             try:
