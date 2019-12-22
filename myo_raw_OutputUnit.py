@@ -16,30 +16,31 @@ from myo_raw import MyoRaw
 
 class OutputUnit:
     def __init__(self):
-        self.EMGandT = []
         self.tytle_dic = {"DATA"   : [["EMG0", "EMG1", "EMG2", "EMG3",
                                      "EMG4", "EMG5", "EMG6", "EMG7", "TIME"]],
                           "STATUS": [["ROCK", "SCISSOR", "PAPER"]]
                           }
+        self.plt_graph = True
         self.black_myo = False
         self.white_myo = True
         
         self.tytle_flag    = True
         self.writeEMG_flag = True
         
-    def data_plot(self, data):
-        if len(data) == 9:
-            print(data)
-            x0 = data[:,0]
-            x1 = data[:,1]
-            x2 = data[:,2]
-            x3 = data[:,3]
-            x4 = data[:,4]
-            x5 = data[:,5]
-            x6 = data[:,6]
-            x7 = data[:,7]
-            t  = data[:,8]
+        self._time = 0
+        self.count = 0
         
+    def data_plot(self, data):
+        x0 = data[:,0]
+        x1 = data[:,1]
+        x2 = data[:,2]
+        x3 = data[:,3]
+        x4 = data[:,4]
+        x5 = data[:,5]
+        x6 = data[:,6]
+        x7 = data[:,7]
+        t  = data[:,8]
+                    
         #Black Myo
         if self.black_myo:
             plt.plot(t, x0, label="EMG D", color='black')
@@ -76,7 +77,7 @@ class OutputUnit:
             self.tytle_flag = False
             
         with open(saving_path, 'a') as f_handle:
-            np.savetxt(f_handle, data, fmt="%0.5f", delimiter=",")
+            np.savetxt(f_handle, data, delimiter=",", fmt="%.5f")
     
     def proc_emg(self, emg, moving, times=[]):
         times.append(time.time())
@@ -93,9 +94,8 @@ class OutputUnit:
         m.add_pose_handler(lambda p: print('pose', p))
         data2 = np.array([["EMG0", "EMG1", "EMG2", "EMG3",
                          "EMG4", "EMG5", "EMG6", "EMG7", "TIME"]])
-        data = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0]])
         dim_data = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0])
-        count = 0
+        data = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0]])
         
         try:
             t_start = time.time()
@@ -104,25 +104,23 @@ class OutputUnit:
                 #stop vibration ever
                 m.write_attr(0x19, b'\x03\x01\x00')
                 
-                emg, _time = m.plot_emg(t_start)
-                dim_data = np.append(emg, _time)
+                emg, self._time = m.plot_emg(t_start)
                 
+                #グラフは1次元
+                dim_data = np.append(emg, self._time)
+                print(dim_data)
                 if len(dim_data) == 9:
-                    #グラフは1次元
-                    self.EMGandT = np.append(self.EMGandT, dim_data, axis=0)
-                    #CSVは2次元
                     dim2_data = np.expand_dims(dim_data, axis=0)
-                    #print(dim2_data)
-                    np.append(data, dim2_data, axis=0)
-                    self.save_data(saving_path, data)
-                    count += 1
+                    data = np.append(data, dim2_data, axis=0)
+                    self.count += 1
                 
         except KeyboardInterrupt:
-            pass
+            self.save_data(saving_path, data)
         finally:
             m.disconnect()
             print()
-            self.data_plot(self.EMGandT)
+            if self.plt_graph:
+                self.data_plot(data)
 
 if __name__=='__main__':
     output = OutputUnit()
