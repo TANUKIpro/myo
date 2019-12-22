@@ -347,15 +347,15 @@ class MyoRaw(object):
         self.write_attr(0x28, b'\x01\x00')
         self.write_attr(0x1d, b'\x01\x00')
         self.write_attr(0x24, b'\x02\x00')
-        #self.write_attr(0x19, b'\x01\x03\x01\x01\x01')
+        self.write_attr(0x19, b'\x01\x03\x01\x01\x01')
         self.write_attr(0x28, b'\x01\x00')
         self.write_attr(0x1d, b'\x01\x00')
-        #self.write_attr(0x19, b'\x09\x01\x01\x00\x00')
+        self.write_attr(0x19, b'\x09\x01\x01\x00\x00')
         self.write_attr(0x1d, b'\x01\x00')
-        #self.write_attr(0x19, b'\x01\x03\x00\x01\x00')
+        self.write_attr(0x19, b'\x01\x03\x00\x01\x00')
         self.write_attr(0x28, b'\x01\x00')
         self.write_attr(0x1d, b'\x01\x00')
-        #self.write_attr(0x19, b'\x01\x03\x01\x01\x00')
+        self.write_attr(0x19, b'\x01\x03\x01\x01\x00')
 
     def mc_end_collection(self):
         '''Myo Connect sends this sequence (or a reordering) when ending data collection
@@ -366,20 +366,20 @@ class MyoRaw(object):
         self.write_attr(0x28, b'\x01\x00')
         self.write_attr(0x1d, b'\x01\x00')
         self.write_attr(0x24, b'\x02\x00')
-        #self.write_attr(0x19, b'\x01\x03\x01\x01\x01')
-        #self.write_attr(0x19, b'\x09\x01\x00\x00\x00')
+        self.write_attr(0x19, b'\x01\x03\x01\x01\x01')
+        self.write_attr(0x19, b'\x09\x01\x00\x00\x00')
         self.write_attr(0x1d, b'\x01\x00')
         self.write_attr(0x24, b'\x02\x00')
-        #self.write_attr(0x19, b'\x01\x03\x00\x01\x01')
+        self.write_attr(0x19, b'\x01\x03\x00\x01\x01')
         self.write_attr(0x28, b'\x01\x00')
         self.write_attr(0x1d, b'\x01\x00')
         self.write_attr(0x24, b'\x02\x00')
-        #self.write_attr(0x19, b'\x01\x03\x01\x01\x01')
+        self.write_attr(0x19, b'\x01\x03\x01\x01\x01')
 
     def vibrate(self, length):
         if length in xrange(1, 4):
             ## first byte tells it to vibrate; purpose of second byte is unknown
-            #self.write_attr(0x19, pack('3B', 3, 1, length))
+            self.write_attr(0x19, pack('3B', 3, 1, length))
             return
 
 
@@ -419,85 +419,4 @@ class MyoRaw(object):
         t = now - t_start
         print(emg, t)
         return emg, t
-
-if __name__ == '__main__':
-    m = MyoRaw(sys.argv[1] if len(sys.argv) >= 2 else None)
-    
-    def data_plot(data):
-        data_np = np.array(data)
-        x0 = data_np[:,0]
-        x1 = data_np[:,1]
-        x2 = data_np[:,2]
-        x3 = data_np[:,3]
-        x4 = data_np[:,4]
-        x5 = data_np[:,5]
-        x6 = data_np[:,6]
-        x7 = data_np[:,7]
-        
-        t = data_np[:,8]
-        
-        #Black Myo
-        """
-        plt.plot(t, x5, "r-", label="EMG A", color='greenyellow')
-        plt.plot(t, x6, "r-", label="EMG B", color='lightsalmon')
-        plt.plot(t, x7, "r-", label="EMG C", color='lightpink')
-        plt.plot(t, x0, "r-", label="EMG D", color='black')
-        plt.plot(t, x1, "r-", label="EMG E", color='red')
-        plt.plot(t, x2, "r-", label="EMG F", color='green')
-        plt.plot(t, x3, "r-", label="EMG G", color='blue')
-        plt.plot(t, x4, "r-", label="EMG H", color='sienna')
-        """
-        
-        #White Myo
-        plt.plot(t, x3, "r-", label="EMG A", color='blue')
-        plt.plot(t, x4, "r-", label="EMG B", color='sienna')
-        plt.plot(t, x5, "r-", label="EMG C", color='greenyellow')
-        plt.plot(t, x6, "r-", label="EMG D", color='lightsalmon')
-        plt.plot(t, x7, "r-", label="EMG E", color='lightpink')
-        plt.plot(t, x0, "r-", label="EMG F", color='black')
-        plt.plot(t, x1, "r-", label="EMG G", color='red')
-        plt.plot(t, x2, "r-", label="EMG H", color='green')
-        
-        plt.xlabel("Time[sec]", fontsize=16)
-        plt.ylabel("EMG", fontsize=16)
-        
-        plt.grid()
-        plt.legend(loc=1, fontsize=16)
-        plt.show()
-        #plt.pause(0.001)
-        #plt.cla()
-
-    def proc_emg(emg, moving, times=[]):
-        times.append(time.time())
-        if len(times) > 20:
-            #print((len(times) - 1) / (times[-1] - times[0]))
-            times.pop(0)
-
-    m.add_emg_handler(proc_emg)
-    m.connect()
-    
-    m.add_arm_handler(lambda arm, xdir: print('arm', arm, 'xdir', xdir))
-    m.add_pose_handler(lambda p: print('pose', p))
-    
-    EMGandT = []
-    
-    try:
-        t_start = time.time()
-
-        while True:
-            m.run(1)
-            #stop vibration ever
-            m.write_attr(0x19, b'\x03\x01\x00')
-            emg, t = m.plot_emg(t_start)
-            try:
-                EMGandT.append([emg[0],emg[1],emg[2],emg[3],emg[4],emg[5],emg[6],emg[7], t])
-                #data_plot(EMGandT)
-            except:
-                pass
-    except KeyboardInterrupt:
-        pass
-    finally:
-        m.disconnect()
-        print()
-        data_plot(EMGandT)
         
