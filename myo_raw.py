@@ -415,8 +415,6 @@ class MyoRaw(object):
     def plot_emg(self, t_start):
         emg = self.emg
         now = time.time()
-        
         t = now - t_start
-        print(emg, t)
         return emg, t
         
