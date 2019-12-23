@@ -9,18 +9,25 @@ import struct
 import sys
 import threading
 import time
+import pygame
 import numpy as np
 from matplotlib import pyplot as plt
 
 from myo_raw import MyoRaw
 
+# NoneだったらFalse, それ以外ならTrueを返す
+f_none = lambda x: True if x is not None else False
+
 class OutputUnit:
     def __init__(self):
         self.tytle_dic = {"DATA"   : [["EMG0", "EMG1", "EMG2", "EMG3",
-                                     "EMG4", "EMG5", "EMG6", "EMG7", "TIME"]],
-                          "STATUS": [["ROCK", "SCISSOR", "PAPER"]]
+                                       "EMG4", "EMG5", "EMG6", "EMG7", "TIME", "STATUS"]],
+                          "STATUS" : [["ROCK", "SCISSOR", "PAPER"]]
                           }
-        self.plt_graph = True
+        self.plt_graph = False
+        self.save_csv  = True
+        self.byn_np    = True
+        
         self.black_myo = False
         self.white_myo = True
         
@@ -31,6 +38,7 @@ class OutputUnit:
         self.count = 0
         
     def data_plot(self, data):
+        data = data[1:]
         x0 = data[:,0]
         x1 = data[:,1]
         x2 = data[:,2]
@@ -71,6 +79,7 @@ class OutputUnit:
         plt.show()
         
     def save_data(self, saving_path, data):
+        data = data[1:]
         if self.tytle_flag is True:
             with open(saving_path, 'w') as f_handle:
                 np.savetxt(f_handle, self.tytle_dic["DATA"], delimiter=",", fmt="%s")
@@ -84,45 +93,58 @@ class OutputUnit:
         if len(times) > 20:
             #print((len(times) - 1) / (times[-1] - times[0]))
             times.pop(0)
+            
+    def on_press(key):
+        try:
+            print('alphanumeric key {0} pressed'.format(key.char))
+        except AttributeError:
+            print('special key {0} pressed'.format(key))
 
-    def main(self, saving_path):
-        m = MyoRaw(sys.argv[1] if len(sys.argv) >= 2 else None)
+    def on_release(key):
+        print('{0} released'.format(key))
+        if key == Key.ctrl:
+            # Stop listener
+            return False
+
+    def main(self, saving_path, status):
+        m = MyoRaw(None)
         m.add_emg_handler(self.proc_emg)
         m.connect()
         
         m.add_arm_handler(lambda arm, xdir: print('arm', arm, 'xdir', xdir))
         m.add_pose_handler(lambda p: print('pose', p))
-        data2 = np.array([["EMG0", "EMG1", "EMG2", "EMG3",
-                         "EMG4", "EMG5", "EMG6", "EMG7", "TIME"]])
-        dim_data = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0])
-        data = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0]])
-        
+
+        dim_data = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, status], dtype=float)
+        data = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, status]], dtype=float)
+        t_flag = True
         try:
             t_start = time.time()
             while True:
                 m.run(1)
                 #stop vibration ever
                 m.write_attr(0x19, b'\x03\x01\x00')
-                
                 emg, self._time = m.plot_emg(t_start)
-                
                 #グラフは1次元
-                dim_data = np.append(emg, self._time)
-                print(dim_data)
-                if len(dim_data) == 9:
-                    dim2_data = np.expand_dims(dim_data, axis=0)
-                    data = np.append(data, dim2_data, axis=0)
-                    self.count += 1
+                dim_data[:9] = np.append(emg, self._time)
+                if self._time > 5.:
+                    print(dim_data)
+                    if len(dim_data) == 10:
+                        dim2_data = np.expand_dims(dim_data, axis=0)
+                        data = np.append(data, dim2_data, axis=0)
+                self.count += 1
                 
         except KeyboardInterrupt:
-            self.save_data(saving_path, data)
+            if self.save_csv: self.save_data(saving_path + ".csv", data[1:])
+            if self.byn_np: np.save(saving_path, data[1:])
         finally:
             m.disconnect()
+            if self.plt_graph: self.data_plot(data)
             print()
-            if self.plt_graph:
-                self.data_plot(data)
 
 if __name__=='__main__':
     output = OutputUnit()
-    output.main('data/temp/sample_EMGdata.csv')
+    saving_path = 'data/temp/sample_EMGdata'
+    status = sys.argv[1]
+    output.main(saving_path, status)
+    
     
