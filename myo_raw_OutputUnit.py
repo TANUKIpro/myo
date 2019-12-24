@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 from __future__ import print_function
 import sys
 import time
 import numpy as np
 import threading
+from multiprocessing import Value, Array, Process
 from pynput.keyboard import Key, Listener
 from matplotlib import pyplot as plt
 from myo_raw import MyoRaw
@@ -14,34 +16,39 @@ f_none = lambda x: True if x is not None else False
 
 class Key_logger:
     def __init__(self):
-        self.frag_list = [False, False, False]
+        self.frag_list = [0, 0, 0] 
 
     def key_judge(self, key):
         if key.char == 'r':
-            self.frag_list[0] = True
+            self.frag_list[0] = 1
+            print("\nROCK")
         elif key.char == 's':
-            self.frag_list[1] = True
+            self.frag_list[1] = 1
+            print("\nSCISSOR")
         elif key.char == 'p':
-            self.frag_list[2] = True
-        
-        self.flag_list = [False, False, False]
+            self.frag_list[2] = 1
+            print("\nPAPER")
 
     def on_press(self, key):
         try:
             self.key_judge(key)
+            self.flag_list = [0, 0, 0]
+            print(self.flag_list)
         except AttributeError:
             pass
 
     def on_release(self, key):
         if key == Key.ctrl:
+            print("INFO : <class> Key_logger is ended")
             return False
 
-    def key_main(self):
+    def key_main(self, count, array):
         with Listener(on_press = self.on_press, on_release = self.on_release) as listener:
             listener.join()
 
 class OutputUnit:
-    def __init__(self):
+    def __init__(self, saving_path):
+        self.saving_path = saving_path
         self.tytle_dic = {"DATA"   : [["EMG0", "EMG1", "EMG2", "EMG3",
                                        "EMG4", "EMG5", "EMG6", "EMG7", "TIME", "STATUS"]],
                           "STATUS" : [["ROCK", "SCISSOR", "PAPER"]]
@@ -116,50 +123,63 @@ class OutputUnit:
             #print((len(times) - 1) / (times[-1] - times[0]))
             times.pop(0)
 
-    def main(self, saving_path, status, key_flag):
+    def myo_main(self, count, array):
         m = MyoRaw(None)
         m.add_emg_handler(self.proc_emg)
         m.connect()
 
         m.add_arm_handler(lambda arm, xdir: print('arm', arm, 'xdir', xdir))
         m.add_pose_handler(lambda p: print('pose', p))
-
-        dim_data = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, status], dtype=float)
-        data = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, status]], dtype=float)
+        
+        # [EMG0, EMG1, EMG2, EMG3, EMG4, EMG5, EMG6, EMG7, TIME, STATUS]
+        dim_data = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=float)
+        data = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0]], dtype=float)
         try:
             t_start = time.time()
             while True:
-                print(key_flag)
+                #print(array[:])
                 m.run(1)
                 #stop vibration ever
                 m.write_attr(0x19, b'\x03\x01\x00')
                 emg, self._time = m.plot_emg(t_start)
                 #グラフは1次元
                 dim_data[:9] = np.append(emg, self._time)
-                if self._time > 5.:
-                    print(dim_data)
+                if self._time > 1.:
+                    #print(dim_data)
                     if len(dim_data) == 10:
                         dim2_data = np.expand_dims(dim_data, axis=0)
                         data = np.append(data, dim2_data, axis=0)
                 self.count += 1
                 
         except KeyboardInterrupt:
-            if self.save_csv: self.save_data(saving_path + ".csv", data[1:])
-            if self.byn_np: np.save(saving_path, data[1:])
+            pass
         finally:
             m.disconnect()
+            if self.save_csv: self.save_data(self.saving_path + ".csv", data[1:])
+            if self.byn_np: np.save(self.saving_path, data[1:])
             if self.plt_graph: self.data_plot(data)
             print()
 
 if __name__=='__main__':
-    output = OutputUnit()
+    # 通信のための共有メモリの作成
+    count = Value('i', 0)
+    array = Array('i', 3)
+    
+    saving_path = 'data/temp/sample_EMGdata'
+    output = OutputUnit(saving_path)
     key    = Key_logger()
 
-    saving_path = 'data/temp/sample_EMGdata'
-    status = sys.argv[1]
-
-    thread_1 = threading.Thread(target = key.key_main)
-    thread_2 = threading.Thread(target = output.main(saving_path, status, key.frag_list))
-
-    thread_1.start()
-    thread_2.start()
+    status = key.frag_list
+    
+    process_key = Process(target=key.key_main, args=[count, array])
+    print("INFO : THREAD_1 START")
+    process_key.start()
+    
+    process_myo = Process(target=output.myo_main, args=[count, array])
+    print("INFO : THREAD_2 START")
+    process_myo.start()
+    
+    process_key.join()
+    process_myo.join()
+    
+    
