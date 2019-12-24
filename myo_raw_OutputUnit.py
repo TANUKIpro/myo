@@ -1,22 +1,44 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 from __future__ import print_function
-
-import enum
-import re
-import struct
 import sys
-import threading
 import time
-import pygame
 import numpy as np
+import threading
+from pynput.keyboard import Key, Listener
 from matplotlib import pyplot as plt
-
 from myo_raw import MyoRaw
 
-# NoneだったらFalse, それ以外ならTrueを返す
+#NoneだったらFalse, それ以外ならTrueを返す
 f_none = lambda x: True if x is not None else False
+
+class Key_logger:
+    def __init__(self):
+        self.frag_list = [False, False, False]
+
+    def key_judge(self, key):
+        if key.char == 'r':
+            self.frag_list[0] = True
+        elif key.char == 's':
+            self.frag_list[1] = True
+        elif key.char == 'p':
+            self.frag_list[2] = True
+        
+        self.flag_list = [False, False, False]
+
+    def on_press(self, key):
+        try:
+            self.key_judge(key)
+        except AttributeError:
+            pass
+
+    def on_release(self, key):
+        if key == Key.ctrl:
+            return False
+
+    def key_main(self):
+        with Listener(on_press = self.on_press, on_release = self.on_release) as listener:
+            listener.join()
 
 class OutputUnit:
     def __init__(self):
@@ -24,7 +46,7 @@ class OutputUnit:
                                        "EMG4", "EMG5", "EMG6", "EMG7", "TIME", "STATUS"]],
                           "STATUS" : [["ROCK", "SCISSOR", "PAPER"]]
                           }
-        self.plt_graph = False
+        self.plt_graph = True
         self.save_csv  = True
         self.byn_np    = True
         
@@ -93,33 +115,21 @@ class OutputUnit:
         if len(times) > 20:
             #print((len(times) - 1) / (times[-1] - times[0]))
             times.pop(0)
-            
-    def on_press(key):
-        try:
-            print('alphanumeric key {0} pressed'.format(key.char))
-        except AttributeError:
-            print('special key {0} pressed'.format(key))
 
-    def on_release(key):
-        print('{0} released'.format(key))
-        if key == Key.ctrl:
-            # Stop listener
-            return False
-
-    def main(self, saving_path, status):
+    def main(self, saving_path, status, key_flag):
         m = MyoRaw(None)
         m.add_emg_handler(self.proc_emg)
         m.connect()
-        
+
         m.add_arm_handler(lambda arm, xdir: print('arm', arm, 'xdir', xdir))
         m.add_pose_handler(lambda p: print('pose', p))
 
         dim_data = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, status], dtype=float)
         data = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, status]], dtype=float)
-        t_flag = True
         try:
             t_start = time.time()
             while True:
+                print(key_flag)
                 m.run(1)
                 #stop vibration ever
                 m.write_attr(0x19, b'\x03\x01\x00')
@@ -143,8 +153,13 @@ class OutputUnit:
 
 if __name__=='__main__':
     output = OutputUnit()
+    key    = Key_logger()
+
     saving_path = 'data/temp/sample_EMGdata'
     status = sys.argv[1]
-    output.main(saving_path, status)
-    
-    
+
+    thread_1 = threading.Thread(target = key.key_main)
+    thread_2 = threading.Thread(target = output.main(saving_path, status, key.frag_list))
+
+    thread_1.start()
+    thread_2.start()
