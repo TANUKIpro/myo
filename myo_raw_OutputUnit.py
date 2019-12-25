@@ -5,41 +5,10 @@ from __future__ import print_function
 import sys
 import time
 import numpy as np
-import threading
-from multiprocessing import Value, Array, Process
-from pynput.keyboard import Key, Listener
 from matplotlib import pyplot as plt
+
 from myo_raw import MyoRaw
-key_list = [0, 0, 0]
-class Key_logger:
-    def key_judge(self, key):
-        key_list = [0, 0, 0]
-        if key.char == 'r':
-            key_list[0] = 1
-            print("\nROCK")
-        elif key.char == 's':
-            key_list[1] = 1
-            print("\nSCISSOR")
-        elif key.char == 'p':
-            key_list[2] = 1
-            print("\nPAPER")
-        print(key_list)
-        
-    def on_press(self, key):
-        try:
-            self.key_judge(key)
-        except AttributeError:
-            pass
-
-    def on_release(self, key):
-        if key == Key.ctrl:
-            print("INFO : <class> Key_logger is ended")
-            return False
-
-    def key_main(self):
-        with Listener(on_press = self.on_press, on_release = self.on_release) as listener:
-            listener.join()
-            #print(listener)
+from kbhit import *
 
 class OutputUnit:
     def __init__(self, saving_path):
@@ -118,7 +87,10 @@ class OutputUnit:
             #print((len(times) - 1) / (times[-1] - times[0]))
             times.pop(0)
 
-    def myo_main(self, status):
+    def myo_main(self):
+        atexit.register(set_normal_term)
+        set_curses_term()
+        
         m = MyoRaw(None)
         m.add_emg_handler(self.proc_emg)
         m.connect()
@@ -129,10 +101,25 @@ class OutputUnit:
         # [EMG0, EMG1, EMG2, EMG3, EMG4, EMG5, EMG6, EMG7, TIME, STATUS]
         dim_data = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0], dtype=float)
         data = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0]], dtype=float)
+        
         try:
             t_start = time.time()
             while True:
-                print(status)
+                if kbhit():
+                    key = getch()
+                    if   key == 'r':
+                        #print("ROCK")
+                        dim_data[-1:] = 1
+                    elif key == 's':
+                        #print("SCISSOR")
+                        dim_data[-1:] = 2
+                    elif key == 'p':
+                        #print("PAPET")
+                        dim_data[-1:] = 3
+                else:
+                    print(dim_data)
+                    dim_data[-1:] = 0
+                    continue
                 m.run(1)
                 #stop vibration ever
                 m.write_attr(0x19, b'\x03\x01\x00')
@@ -158,17 +145,5 @@ class OutputUnit:
 if __name__=='__main__':
     saving_path = 'data/temp/sample_EMGdata'
     output = OutputUnit(saving_path)
-    key    = Key_logger()
-    
-    process_key = Process(target=key.key_main)
-    print("INFO : THREAD_1 START")
-    process_key.start()
-    
-    process_myo = Process(target=output.myo_main(key_list))
-    print("INFO : THREAD_2 START")
-    process_myo.start()
-    
-    process_key.join()
-    process_myo.join()
-    
+    output.myo_main()
     
