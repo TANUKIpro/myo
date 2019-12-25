@@ -9,16 +9,9 @@ import struct
 import sys
 import threading
 import time
-
 import serial
 from serial.tools.list_ports import comports
-
 from common import *
-
-import numpy as np
-from matplotlib import pyplot as plt
-from matplotlib import animation
-
 
 def multichr(ords):
     if sys.version_info[0] >= 3:
@@ -216,13 +209,14 @@ class MyoRaw(object):
         self.bt.discover()
         while True:
             p = self.bt.recv_packet()
-            print('scan response:', p)
+            #print('scan response:', p)
 
             if p.payload.endswith(b'\x06\x42\x48\x12\x4A\x7F\x2C\x48\x47\xB9\xDE\x04\xA9\x01\x00\x06\xD5'):
                 addr = list(multiord(p.payload[2:8]))
                 break
+        print("Scan complete")
         self.bt.end_scan()
-
+        
         ## connect and wait for status event
         conn_pkt = self.bt.connect(addr)
         self.conn = multiord(conn_pkt.payload)[-1]
@@ -394,7 +388,6 @@ class MyoRaw(object):
 
     def add_arm_handler(self, h):
         self.arm_handlers.append(h)
-
 
     def on_emg(self, emg, moving):
         for h in self.emg_handlers:

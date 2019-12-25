@@ -10,30 +10,24 @@ from multiprocessing import Value, Array, Process
 from pynput.keyboard import Key, Listener
 from matplotlib import pyplot as plt
 from myo_raw import MyoRaw
-
-#NoneだったらFalse, それ以外ならTrueを返す
-f_none = lambda x: True if x is not None else False
-
+key_list = [0, 0, 0]
 class Key_logger:
-    def __init__(self):
-        self.frag_list = [0, 0, 0] 
-
     def key_judge(self, key):
+        key_list = [0, 0, 0]
         if key.char == 'r':
-            self.frag_list[0] = 1
+            key_list[0] = 1
             print("\nROCK")
         elif key.char == 's':
-            self.frag_list[1] = 1
+            key_list[1] = 1
             print("\nSCISSOR")
         elif key.char == 'p':
-            self.frag_list[2] = 1
+            key_list[2] = 1
             print("\nPAPER")
-
+        print(key_list)
+        
     def on_press(self, key):
         try:
             self.key_judge(key)
-            self.flag_list = [0, 0, 0]
-            print(self.flag_list)
         except AttributeError:
             pass
 
@@ -42,9 +36,10 @@ class Key_logger:
             print("INFO : <class> Key_logger is ended")
             return False
 
-    def key_main(self, count, array):
+    def key_main(self):
         with Listener(on_press = self.on_press, on_release = self.on_release) as listener:
             listener.join()
+            #print(listener)
 
 class OutputUnit:
     def __init__(self, saving_path):
@@ -123,7 +118,7 @@ class OutputUnit:
             #print((len(times) - 1) / (times[-1] - times[0]))
             times.pop(0)
 
-    def myo_main(self, count, array):
+    def myo_main(self, status):
         m = MyoRaw(None)
         m.add_emg_handler(self.proc_emg)
         m.connect()
@@ -137,7 +132,7 @@ class OutputUnit:
         try:
             t_start = time.time()
             while True:
-                #print(array[:])
+                print(status)
                 m.run(1)
                 #stop vibration ever
                 m.write_attr(0x19, b'\x03\x01\x00')
@@ -161,21 +156,15 @@ class OutputUnit:
             print()
 
 if __name__=='__main__':
-    # 通信のための共有メモリの作成
-    count = Value('i', 0)
-    array = Array('i', 3)
-    
     saving_path = 'data/temp/sample_EMGdata'
     output = OutputUnit(saving_path)
     key    = Key_logger()
-
-    status = key.frag_list
     
-    process_key = Process(target=key.key_main, args=[count, array])
+    process_key = Process(target=key.key_main)
     print("INFO : THREAD_1 START")
     process_key.start()
     
-    process_myo = Process(target=output.myo_main, args=[count, array])
+    process_myo = Process(target=output.myo_main(key_list))
     print("INFO : THREAD_2 START")
     process_myo.start()
     
