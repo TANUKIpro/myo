@@ -105,6 +105,11 @@ class OutputUnit:
         try:
             t_start = time.time()
             while True:
+                m.run(1)
+                #stop vibration ever
+                m.write_attr(0x19, b'\x03\x01\x00')
+                emg, self._time = m.plot_emg(t_start)
+                
                 if kbhit():
                     key = getch()
                     if   key == 'r':
@@ -116,18 +121,15 @@ class OutputUnit:
                     elif key == 'p':
                         #print("PAPET")
                         dim_data[-1:] = 3
+                    print("\r", end='')
                 else:
-                    print(dim_data)
+                    print("\r{0}".format(dim_data), end="")
                     dim_data[-1:] = 0
                     continue
-                m.run(1)
-                #stop vibration ever
-                m.write_attr(0x19, b'\x03\x01\x00')
-                emg, self._time = m.plot_emg(t_start)
+                
                 #グラフは1次元
                 dim_data[:9] = np.append(emg, self._time)
                 if self._time > 1.:
-                    #print(dim_data)
                     if len(dim_data) == 10:
                         dim2_data = np.expand_dims(dim_data, axis=0)
                         data = np.append(data, dim2_data, axis=0)
@@ -140,7 +142,7 @@ class OutputUnit:
             if self.save_csv: self.save_data(self.saving_path + ".csv", data[1:])
             if self.byn_np: np.save(self.saving_path, data[1:])
             if self.plt_graph: self.data_plot(data)
-            print()
+            print("")
 
 if __name__=='__main__':
     saving_path = 'data/temp/sample_EMGdata'
