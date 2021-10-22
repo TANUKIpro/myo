@@ -1,11 +1,8 @@
 # myoの使い方
 ### はじめに  
-- [公式サイト](https://support.getmyo.com/hc/en-us)は完全に沈黙しており、更新が止まっている。~~(会社が買収されたからね)~~  
-- Myo production has officially ended as of Oct 12, 2018 and is no longer available for purchase.(訳:Myoの生産は、2018年10月12日に正式に終了し、購入できなくなりました。)  
-- 悲しい  
-- __ISSUES__ にも逐一追加していく予定であるが、日本語サイトが少なく生産が終了しているデバイスなので、問題が発生した時に解決に時間がかかるor解決できない。  
-TANUKIとしてもこれは非常に由々しき問題であり、自身の無能さを呪うばかりである。  
-<font color="Green">頑張りまっする。</font>  
+- [公式サイト](https://support.getmyo.com/hc/en-us)は完全に沈黙しており、更新が止まっている。  
+- Myo production has officially ended as of Oct 12, 2018 and is no longer available for purchase.  
+- __ISSUES__ にも逐一追加していく予定であるが、日本語サイトが少なく生産が終了しているデバイスなので、問題が発生した時に解決に時間がかかるor解決できない。    
 
 ### 用意するもの  
 - Myo D5
@@ -32,7 +29,7 @@ TANUKIとしてもこれは非常に由々しき問題であり、自身の無�
 3. 筋電のデータ
     - 筋電のデータは、myoとの通信が確立した時点から、Ctrl+cでプログラムが終了するまでのあいだ、リストに格納される。
     - 格納されたデータは、プログラム終了後グラフとして表示される。以下は測定結果の一例である。  
-    TANUKIがいい加減な分解をしたため、筋電の一つが正しく測定されていない。  
+    いい加減な分解をしたため、筋電の一つが正しく測定されていない。  
     ![EMG](/data/figure_1.png)  
 
 [元のコード](https://github.com/dzhu/myo-raw)は、PyGameを使った謎GUIがあったが消した。
